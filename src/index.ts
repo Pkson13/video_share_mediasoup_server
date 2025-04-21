@@ -8,8 +8,15 @@ import { keys, mediaSoup_config } from "./config/keys.js";
 //mediasoup
 import { createWorker } from "./medias_oup_sfuff/create_worker.js";
 import createRouter from "./medias_oup_sfuff/create_router.js";
-import { Producer, Router, Transport } from "mediasoup/types";
-import { TransportOptions } from "mediasoup-client/types";
+import {
+  Consumer,
+  Producer,
+  Router,
+  RtpCapabilities,
+  Transport,
+  WebRtcTransport,
+} from "mediasoup/types";
+import { ConsumerOptions, TransportOptions } from "mediasoup-client/types";
 // import { types as mstypes } from "mediasoup";
 
 const app = express();
@@ -26,6 +33,7 @@ const routersArray: Router[] = [];
 const workersArry = await createWorker(1);
 const transportArray: Transport[] = [];
 const producers: Producer[] = [];
+let consumer: Consumer;
 
 app.use(express.static("./public"));
 app.get("/", (req, res) => {
@@ -62,14 +70,83 @@ io.on("connection", (socket) => {
     // console.log("waiting");
     callback(transportOptions);
   });
+  socket.on(
+    "serverCreateWebRtcRecieveTransport",
+    async (capabilities: RtpCapabilities, callback) => {
+      console.log("serverCreateWebRtcRecieveTransport");
+      let transport: WebRtcTransport | undefined;
+      const transportOptions: TransportOptions = {} as TransportOptions;
+      // for (const r of routersArray) {
+      if (
+        !routersArray[0].canConsume({
+          rtpCapabilities: capabilities,
+          producerId: producers[0].id,
+        })
+      ) {
+        console.log("cannot consume");
+        callback("you cannot consume");
+        return;
+      }
+      console.log("can consume");
+      //you have to check for a specific router
+      //doing this coz i passed 1 to the createworker funtion so there will only be one woker
+      transport = await routersArray[0].createWebRtcTransport(
+        mediaSoup_config.webRtcTransportOptions
+      );
+      transportOptions.id = transport.id;
+      transportOptions.iceParameters = transport.iceParameters;
+      transportOptions.iceCandidates = transport.iceCandidates;
+      transportOptions.dtlsParameters = transport.dtlsParameters;
+      transportArray.push(transport);
+      // }
+      // await new Promise((resolve) => setTimeout(resolve, 5000));
+      // console.log("waiting");
+      // transport!.consume();
+      if (!transport) {
+        callback("transport was not created");
+        return;
+      }
+      callback(transportOptions);
+
+      consumer = await transport.consume({
+        producerId: producers[0].id,
+        rtpCapabilities: capabilities,
+        paused: true,
+      });
+      const consumeroptions: ConsumerOptions = {
+        id: consumer.id,
+        producerId: producers[0].id,
+        kind: consumer.kind,
+        rtpParameters: consumer.rtpParameters,
+      };
+      socket.emit("newConsumer", consumeroptions);
+    }
+  );
+
+  socket.on("client-consumer-created", (callback) => {
+    consumer.resume();
+    callback("resumed");
+  });
+
   socket.on("transport-connect", async (dtlsParameters, callback) => {
     console.log("transport-connect");
     // const transportOptions: TransportOptions = {} as TransportOptions;
     //you have to check for a specific transport
     //doing this coz i passed 1 to the createworker funtion so there will only be one transport
-    for (const t of transportArray) {
-      await t.connect({ dtlsParameters: dtlsParameters });
-    }
+    // for (const t of transportArray) {
+    await transportArray[0].connect({ dtlsParameters: dtlsParameters });
+    // }
+    console.log(dtlsParameters);
+    // await new Promise((resolve) => setTimeout(resolve, 5000));
+    // console.log("waiting");
+    callback("connected");
+  });
+  socket.on("transport-connect-consumer", async (dtlsParameters, callback) => {
+    console.log("transport-connect-consumer");
+    // const transportOptions: TransportOptions = {} as TransportOptions;
+    //you have to check for a specific transport
+    //doing this coz i passed 1 to the createworker funtion so there will only be one transport
+    await transportArray[1].connect({ dtlsParameters: dtlsParameters });
     console.log(dtlsParameters);
     // await new Promise((resolve) => setTimeout(resolve, 5000));
     // console.log("waiting");
@@ -80,15 +157,15 @@ io.on("connection", (socket) => {
     // const transportOptions: TransportOptions = {} as TransportOptions;
     //you have to check for a specific transport
     //doing this coz i passed 1 to the createworker funtion so there will only be one transport
-    for (const t of transportArray) {
-      const producer = await t.produce(parameters);
-      console.log(producer);
-      producers.push(producer);
-      // await new Promise((resolve) => setTimeout(resolve, 5000));
-      // console.log("waiting");
-      callback(producer.id);
-      // testing git tracking
-    }
+    // for (const t of transportArray) {
+    const producer = await transportArray[0].produce(parameters);
+    console.log(producer);
+    producers.push(producer);
+    // await new Promise((resolve) => setTimeout(resolve, 5000));
+    // console.log("waiting");
+    callback(producer.id);
+    // testing git tracking
+    // }
   });
 });
 
