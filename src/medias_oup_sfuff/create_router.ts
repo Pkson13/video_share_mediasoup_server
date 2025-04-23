@@ -6,7 +6,7 @@ const createRouter = async (workersArry: Worker[], routers: Router[]) => {
     const router = await worker.createRouter({
       mediaCodecs: mediaSoup_config.router_codecs,
     });
-    routers.push(router);
+    routers[0] = router;
   }
 };
 export default createRouter;

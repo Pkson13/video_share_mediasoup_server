@@ -43,29 +43,40 @@ app.get("/", (req, res) => {
 io.on("connection", (socket) => {
   // ...
   console.log("id", socket.id);
-  createRouter(workersArry, routersArray).then(() => {
-    console.log("routers", routersArray);
-    for (const r of routersArray) {
-      console.log(r.rtpCapabilities);
-      socket.emit("routerRtpCapabilities", r.rtpCapabilities);
-    }
+  socket.on("createRouter", (callback) => {
+    createRouter(workersArry, routersArray).then(() => {
+      console.log("routers", routersArray);
+      // for (const r of routersArray) {
+      // console.log(routersArray[0].rtpCapabilities);
+      socket.emit("routerRtpCapabilities", routersArray[0].rtpCapabilities);
+      callback("created");
+      // }
+    });
+  });
+
+  socket.on("routerrtpcap", async (callback) => {
+    socket.emit("routerRtpCapabilities", routersArray[0].rtpCapabilities);
+    await new Promise((resolve, rej) => {
+      setTimeout(resolve, 1500);
+    });
+    callback();
   });
 
   socket.on("serverCreateWebRtcTransport", async (callback) => {
     console.log("serverCreateWebRtcTransport");
     const transportOptions: TransportOptions = {} as TransportOptions;
-    for (const r of routersArray) {
-      //you have to check for a specific router
-      //doing this coz i passed 1 to the createworker funtion so there will only be one woker
-      const transport = await r.createWebRtcTransport(
-        mediaSoup_config.webRtcTransportOptions
-      );
-      transportOptions.id = transport.id;
-      transportOptions.iceParameters = transport.iceParameters;
-      transportOptions.iceCandidates = transport.iceCandidates;
-      transportOptions.dtlsParameters = transport.dtlsParameters;
-      transportArray.push(transport);
-    }
+    // for (const r of routersArray) {
+    //you have to check for a specific router
+    //doing this coz i passed 1 to the createworker funtion so there will only be one woker
+    const transport = await routersArray[0].createWebRtcTransport(
+      mediaSoup_config.webRtcTransportOptions
+    );
+    transportOptions.id = transport.id;
+    transportOptions.iceParameters = transport.iceParameters;
+    transportOptions.iceCandidates = transport.iceCandidates;
+    transportOptions.dtlsParameters = transport.dtlsParameters;
+    transportArray.push(transport);
+    // }
     // await new Promise((resolve) => setTimeout(resolve, 5000));
     // console.log("waiting");
     callback(transportOptions);
