@@ -3,8 +3,8 @@ import { RtpCodecCapability, WebRtcTransportOptions } from "mediasoup/types";
 import { cpus as os_cpus } from "os";
 
 const keys = {
-  key: readFileSync("./cert-key.pem", { encoding: "utf-8" }),
-  cert: readFileSync("./cert.pem", { encoding: "utf-8" }),
+  key: readFileSync("./localhost-key.pem", { encoding: "utf-8" }),
+  cert: readFileSync("./localhost.pem", { encoding: "utf-8" }),
 } as const;
 
 console.log(Object.keys(os_cpus()));
