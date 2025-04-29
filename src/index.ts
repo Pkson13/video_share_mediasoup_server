@@ -198,6 +198,8 @@ io.on("connection", (socket) => {
       console.log("transport-connect");
       console.log("roomname", roomname);
       console.log("trans-id", transportId);
+      // console.log("dtlsparams", dtlsParameters);
+
       // const transportOptions: TransportOptions = {} as TransportOptions;
       //you have to check for a specific transport
       //doing this coz i passed 1 to the createworker funtion so there will only be one transport
@@ -276,11 +278,12 @@ io.on("connection", (socket) => {
       // );
 
       // todo do the emit logic
-      console.log(transport.producer);
+      console.log(transport.producer.id);
       // await new Promise((resolve) => setTimeout(resolve, 5000));
       // console.log("waiting");
       callback(transport.producer.id);
       // testing git tracking
+      io.emit("new-producer", transport.producer.id);
       // }
     }
   );
