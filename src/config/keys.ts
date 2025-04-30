@@ -46,7 +46,8 @@ const mediaSoup_config = {
     enableTcp: true,
     preferUdp: true,
     listenInfos: [
-      { protocol: "udp", ip: "0.0.0.0", announcedAddress: "192.168.88.181" },
+      //make sure to change this info according to your setup, you don't want to spend 8 hours debbugging like me😂. for more info please read the docs
+      { protocol: "udp", ip: "0.0.0.0", announcedAddress: "192.168.88.180" },
     ],
   } as WebRtcTransportOptions,
 } as const;
